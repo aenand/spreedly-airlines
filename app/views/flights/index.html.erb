@@ -35,6 +35,7 @@
         <%= label_tag("flight_id_#{flight.id}", "#{flight.arrival_airport.name}") %> |
         <%= label_tag("flight_id_#{flight.id}", "Departure date: #{flight.date_formatted}") %> |
         <%= label_tag("flight_id_#{flight.id}", "Duration: #{pluralize(flight.duration, 'hour')}") %>
+        <%= label_tag("flight_id_#{flight.id}", "Price per ticket: #{flight.price}") %>
       </div>
     <% end %>
     <div class = "form">

@@ -3,6 +3,7 @@ class BookingsController < ApplicationController
     @booking = Booking.new
     @flight = Flight.find(params[:flight_id])
     @num_passengers = params[:num_passengers].to_i
+    @total_price = @flight.price * @num_passengers
     @num_passengers.times {@booking.passengers.build}
   end
 
