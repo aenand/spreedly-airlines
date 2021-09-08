@@ -1,8 +1,15 @@
+<%= javascript_pack_tag 'hide' %>
 <h1>Booking Information</h1>
 
 <div>
+  <% flash.each do |type, msg| %>
+  <div>
+    <%= msg %>
+  </div>
+  <% end %>
   <%= form_for(@booking) do |f| %>
   <%= f.hidden_field :flight_id, value: params[:flight_id] %>
+  <%= f.hidden_field :num_passengers, value: @num_passengers %>
 
     Departing from: <%= @flight.departure_airport.name %> |
     Arriving to: <%= @flight.arrival_airport.name %> |
@@ -20,6 +27,24 @@
         </li>
       <% end %>
     </ul>
+    <input id="previous_card" name="previous_card" type="checkbox" value="false" />
+    <label for="previous_card">Use previous card?</label>
+      <fieldset id = "new_card">
+        <label for="credit_card_full_name">First Name</label>
+        <input id="credit_card_full_name" name="credit_card[first_name]" type="text" />
+        <label for="credit_card_full_name">Last Name</label>
+        <input id="credit_card_full_name" name="credit_card[last_name]" type="text" />
+
+        <label for="credit_card_number">Card Number</label>
+        <input id="credit_card_number" name="credit_card[number]" type="text" />
+
+        <label for="credit_card_month">Expires on</label>
+        <input id="credit_card_month" name="credit_card[month]" type="text" />
+        <input id="credit_card_year" name="credit_card[year]" type="text" />
+
+        <input id="retain" name="credit_card[storage_state]" type="checkbox" value="true" />
+        <label for="retain">Save card for future use?</label>
+      </fieldset>
 
     <div>
       <%= submit_tag "Create Booking" %>

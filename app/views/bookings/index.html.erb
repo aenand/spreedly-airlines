@@ -17,4 +17,14 @@ Upcoming Reservations:
   <% end %>
 </ul>
 
+<ul>
+  <% @transactions.each do |transaction| %>
+  <li>
+    Transaction Token: <%= transaction.token %> |
+    Transaction Success/Failure: <%= transaction.succeeded %> |
+    Transaction Message: <%= transaction.message %>
+  </li>
+  <% end %>
+</ul>
+
 <%= link_to "Find another flight", flights_path %>
