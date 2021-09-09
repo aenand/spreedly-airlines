@@ -18,18 +18,36 @@ class BookingsController < ApplicationController
       @flight = Flight.find(booking_params[:flight_id].to_i)
       @num_passengers = params[:booking][:num_passengers].to_i
       @total_price = @flight.price * @num_passengers
-      cc = @@env.add_credit_card(credit_card_params)
-      if credit_card_params[:storage_state]
-        @@env.retain_payment_method(cc.payment_method.token)
+      @credit_cards = @@env.list_payment_methods
+      if params[:card_to_use].blank?
+        #new card
+        cc = @@env.add_credit_card(credit_card_params)
+        if credit_card_params[:storage_state]
+          @@env.retain_payment_method(cc.payment_method.token)
+        end
+        trx = @@env.purchase_on_gateway(@@gateway.token, cc.payment_method.token, @total_price.to_i * 100)
+      else
+        #existing card
+        cc = @@env.find_payment_method(params[:card_to_use])
+        trx = @@env.purchase_on_gateway(@@gateway.token, cc.token, @total_price.to_i * 100)
       end
-      trx = @@env.purchase_on_gateway(@@gateway.token, cc.payment_method.token, @total_price.to_i)
+
       if trx.succeeded?
         @booking = Booking.new(booking_params)
         @booking.trx_id = trx.token
         if @booking.save
           flash[:success] = "Created!"
-          #deliver to PMD if a vaulted card
-          if cc.payment_method.storage_state
+          #deliver to PMD if a vaulted card and existing card
+          if cc.storage_state == 'retained'
+            @@env.deliver_to_receiver(
+              'DtUGltJd9Djt7A6sx296odPMsLr',
+              cc.token,
+              headers: { "Content-Type": "application/json" },
+              url: "https://spreedly-echo.herokuapp.com",
+              body: { card_number: credit_card_params[:number] }.to_json
+            )
+            #deliver to PMD if a vaulted card and new card
+          elsif cc.payment_method.storage_state == 'retained'
             @@env.deliver_to_receiver(
               'DtUGltJd9Djt7A6sx296odPMsLr',
               cc.payment_method.token,
@@ -41,7 +59,6 @@ class BookingsController < ApplicationController
           redirect_to @booking
         else
           @booking = Booking.new
-
           @num_passengers.times {@booking.passengers.build}
           render :new
         end

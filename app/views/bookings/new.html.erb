@@ -45,7 +45,7 @@
         <input id="retain" name="credit_card[storage_state]" type="checkbox" value="true" />
         <label for="retain">Save card for future use?</label>
       </fieldset>
-
+      <%= select_tag(:card_to_use, options_from_collection_for_select(@credit_cards, :token, :last_four_digits), :include_blank => true) %>
     <div>
       <%= submit_tag "Create Booking" %>
     </div>
