@@ -18,6 +18,8 @@ module FlightBooker
       end if File.exists?(env_file)
     end
 
+    config.filter_parameters += [:number]
+
     config.load_defaults 6.1
     # Configuration for the application, engines, and railties goes here.
     #

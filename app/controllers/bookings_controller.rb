@@ -1,6 +1,6 @@
 class BookingsController < ApplicationController
   @@env = Spreedly::Environment.new(ENV["CORE_ENVIRONMENT_KEY"], ENV["CORE_ACCESS_SECRET"])
-  @@gateway = @@env.find_gateway('VjdAvFJWOj6mqmjd1UxgP4AQRfb')
+  @@gateway = @@env.find_gateway(ENV["GATEWAY_KEY"])
 
   def new
     @booking = Booking.new
@@ -37,24 +37,25 @@ class BookingsController < ApplicationController
         @booking.trx_id = trx.token
         if @booking.save
           flash[:success] = "Created!"
-          #deliver to PMD if a vaulted card and existing card
-          if cc.storage_state == 'retained'
+          #deliver to PMD if a vaulted card and new card
+          if credit_card_params[:storage_state] && params[:card_to_use].blank?
             @@env.deliver_to_receiver(
-              'DtUGltJd9Djt7A6sx296odPMsLr',
-              cc.token,
-              headers: { "Content-Type": "application/json" },
-              url: "https://spreedly-echo.herokuapp.com",
-              body: { card_number: credit_card_params[:number] }.to_json
-            )
-            #deliver to PMD if a vaulted card and new card
-          elsif cc.payment_method.storage_state == 'retained'
-            @@env.deliver_to_receiver(
-              'DtUGltJd9Djt7A6sx296odPMsLr',
+              ENV["RECEIVER_KEY"],
               cc.payment_method.token,
               headers: { "Content-Type": "application/json" },
               url: "https://spreedly-echo.herokuapp.com",
               body: { card_number: credit_card_params[:number] }.to_json
             )
+            #deliver to PMD if a vaulted card and existing card
+          elsif !params[:card_to_use].blank?
+            @@env.deliver_to_receiver(
+              ENV["RECEIVER_KEY"],
+              cc.token,
+              headers: { "Content-Type": "application/json" },
+              url: "https://spreedly-echo.herokuapp.com",
+              body: { card_number: credit_card_params[:number] }.to_json
+            )
+
           end
           redirect_to @booking
         else
