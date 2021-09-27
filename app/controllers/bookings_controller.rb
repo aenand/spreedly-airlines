@@ -14,60 +14,39 @@ class BookingsController < ApplicationController
   def create
 
     begin
-      #try to add credit card, if it fails then render new with why credit card is invalid
+      puts params[:payment_method_token]
       @flight = Flight.find(booking_params[:flight_id].to_i)
       @num_passengers = params[:booking][:num_passengers].to_i
       @total_price = @flight.price * @num_passengers
-      @credit_cards = @@env.list_payment_methods
-      if params[:card_to_use].blank?
-        #new card
-        cc = @@env.add_credit_card(credit_card_params)
-        if credit_card_params[:storage_state]
-          @@env.retain_payment_method(cc.payment_method.token)
-        end
-        trx = @@env.purchase_on_gateway(@@gateway.token, cc.payment_method.token, @total_price.to_i * 100)
-      else
-        #existing card
-        cc = @@env.find_payment_method(params[:card_to_use])
-        trx = @@env.purchase_on_gateway(@@gateway.token, cc.token, @total_price.to_i * 100)
+      trx = @@env.purchase_on_gateway(@@gateway.token, params[:payment_method_token], @total_price.to_i * 100)
+      if params[:storage_state]
+        @@env.retain_payment_method(params[:payment_method_token])
       end
-
       if trx.succeeded?
         @booking = Booking.new(booking_params)
         @booking.trx_id = trx.token
         if @booking.save
-          flash[:success] = "Created!"
-          #deliver to PMD if a vaulted card and new card
-          if credit_card_params[:storage_state] && params[:card_to_use].blank?
-            @@env.deliver_to_receiver(
-              ENV["RECEIVER_KEY"],
-              cc.payment_method.token,
-              headers: { "Content-Type": "application/json" },
-              url: "https://spreedly-echo.herokuapp.com",
-              body: { card_number: credit_card_params[:number] }.to_json
-            )
-            #deliver to PMD if a vaulted card and existing card
-          elsif !params[:card_to_use].blank?
-            @@env.deliver_to_receiver(
-              ENV["RECEIVER_KEY"],
-              cc.token,
-              headers: { "Content-Type": "application/json" },
-              url: "https://spreedly-echo.herokuapp.com",
-              body: { card_number: credit_card_params[:number] }.to_json
-            )
-
-          end
+          flash[:success] = "Booked!"
+          @@env.deliver_to_receiver(
+            ENV["RECEIVER_KEY"],
+            params[:payment_method_token],
+            headers: { "Content-Type": "application/json" },
+            url: "https://spreedly-echo.herokuapp.com",
+            body: {'test': 'test'}
+          )
           redirect_to @booking
         else
-          @booking = Booking.new
-          @num_passengers.times {@booking.passengers.build}
-          render :new
+        flash[:error] = trx.message
+        @booking = Booking.new
+        @num_passengers.times {@booking.passengers.build}
+        render :new
         end
       else
         flash[:error] = trx.message
         @booking = Booking.new
         @num_passengers.times {@booking.passengers.build}
         render :new
+        end
       end
     rescue Exception => ex
       flash[:error] = ex.message
@@ -75,7 +54,6 @@ class BookingsController < ApplicationController
       @num_passengers.times {@booking.passengers.build}
       render :new
     end
-  end
 
 
   def index
